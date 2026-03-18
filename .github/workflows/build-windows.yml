@@ -26,10 +26,13 @@ jobs:
         run: |
           go build -ldflags="-s -w" -o laplace.exe .
 
+      - name: Install NSIS
+        run: |
+          choco install nsis -y
+
       - name: Create installer with NSIS
-        uses: joncloud/makensis-action@v4
-        with:
-          script-file: installer.nsi
+        run: |
+          makensis installer.nsi
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
