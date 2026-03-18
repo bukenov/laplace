@@ -1,0 +1,62 @@
+name: Build Windows Installer
+
+on:
+  push:
+    branches: [master]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build application
+        run: |
+          go build -ldflags="-s -w" -o laplace.exe .
+
+      - name: Create installer with NSIS
+        uses: joncloud/makensis-action@v4
+        with:
+          script-file: installer.nsi
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: laplace-windows-installer
+          path: laplace-setup.exe
+
+      - name: Upload portable executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: laplace-windows-portable
+          path: laplace.exe
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            laplace-windows-installer/laplace-setup.exe
+            laplace-windows-portable/laplace.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
